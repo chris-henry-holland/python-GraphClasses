@@ -1,0 +1,48 @@
+# pyproject.toml
+
+[build-system]
+requires = ["setuptools>=64.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "graph_classes"
+version = "1.0.0"
+description = "Python classes representing different types of mathematical graph, implementing graph and network algorithms as methods"
+readme = "README.md"
+authors = [{ name = "Christopher Holland", email = "chris.henry.holland@gmail.com" }]
+
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = [
+    "python",
+    "graph",
+    "digraph",
+    "weighted graph",
+    "network",
+    "grid",
+    "algorithms",
+    "path finding algorithms",
+    "minimum spanning tree",
+    "strongly connected components",
+    "bridge",
+    "articulation point",
+    "topological sort",
+    "Kahn",
+    "Tarjan",
+    "Kosuraju",
+    "Kruskall",
+    "Eulerian cycle",
+]
+dependencies = [
+    "sortedcontainers>=2.4.0",
+    "data_structures_and_algorithms @ git+https://github.com/chris-henry-holland/python-DataStructuresAndAlgorithms",
+    "unittest_utilities @ git+https://github.com/chris-henry-holland/python-UnittestUtilities",
+]
+requires-python = ">=3.11"
+
+[project.urls]
+Repository = "https://github.com/chris-henry-holland/python-GraphClasses.git"

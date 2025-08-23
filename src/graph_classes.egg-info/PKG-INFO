@@ -1,0 +1,54 @@
+Metadata-Version: 2.4
+Name: graph_classes
+Version: 1.0.0
+Summary: Python classes representing different types of mathematical graph, implementing graph and network algorithms as methods
+Author-email: Christopher Holland <chris.henry.holland@gmail.com>
+License: MIT License
+        
+        Copyright (c) 2025 chris-henry-holland
+        
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:
+        
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+        
+        THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+        IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+        FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+        AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+        LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+        OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+        SOFTWARE.
+        
+Project-URL: Repository, https://github.com/chris-henry-holland/python-GraphClasses.git
+Keywords: python,graph,digraph,weighted graph,network,grid,algorithms,path finding algorithms,minimum spanning tree,strongly connected components,bridge,articulation point,topological sort,Kahn,Tarjan,Kosuraju,Kruskall,Eulerian cycle
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Requires-Dist: sortedcontainers>=2.4.0
+Requires-Dist: data_structures_and_algorithms@ git+https://github.com/chris-henry-holland/python-DataStructuresAndAlgorithms
+Requires-Dist: unittest_utilities@ git+https://github.com/chris-henry-holland/python-UnittestUtilities
+Dynamic: license-file
+
+<h1>Graph classes repository</h1>
+
+This contains a collection of classes representing different types of mathematical graph (i.e. directed and undirected, weighted and unweighted) and implementations of different
+graph and network algorithms. This includes the ability to define graphs based on other structures, for example graphs based around grid traversal that have been constructed.
+
+<h2>Development</h2>
+
+This package was written primarily as practice and experimentation in object oriented programming techniques (in particular inheritance and polymorphism) and unit testing.
+As a project of relatively limited scope but potential for expansion, I used this as a kind of sandbox for trying out different ideas for creating a framework that is above
+all robust, flexible and expansible. To this end, the algorithms are almost certainly not the most performant in terms of speed or memory usage, as this was a secondary
+consideration.
+
+I also used this project as a way to practice and develop my techniques in unit testing.
+
