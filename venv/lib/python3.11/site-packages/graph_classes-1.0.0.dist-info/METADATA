@@ -35,7 +35,8 @@ Description-Content-Type: text/markdown
 License-File: LICENSE
 Requires-Dist: sortedcontainers>=2.4.0
 Requires-Dist: data_structures_and_algorithms@ git+https://github.com/chris-henry-holland/python-DataStructuresAndAlgorithms
-Requires-Dist: unittest_utilities@ git+https://github.com/chris-henry-holland/python-UnittestUtilities
+Provides-Extra: testing
+Requires-Dist: unittest_utilities@ git+https://github.com/chris-henry-holland/python-UnittestUtilities ; extra == "testing"
 Dynamic: license-file
 
 <h1>Graph classes repository</h1>

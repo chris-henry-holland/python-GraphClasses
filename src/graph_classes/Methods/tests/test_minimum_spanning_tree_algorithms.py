@@ -84,7 +84,7 @@ class TestKruskal(TestGraphMethodTemplate):
     #        res2: res_type_alias_lst[-1]) -> bool:
     #    res1 == res2
     
-    def resultString(self, res: res_type_alias_lst[-1],\
+    def resultString(self, res: Tuple[List[Tuple[int, int, int]], Any],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a minimum spanning forest with the edges (given as a "\
@@ -95,7 +95,7 @@ class TestKruskal(TestGraphMethodTemplate):
     def methodResultTest(self, obj: "LimitedWeightedUndirectedGraphTemplate",\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Tuple[List[Tuple[int, int, int]], Any]]=None)\
             -> bool:
         test_func = lambda res: (checkMinimumSpanningForest(obj, *res, eps=self.eps),\
                 " which is not a minimum spanning forest of the graph "\

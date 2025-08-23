@@ -1,3 +1,5 @@
 sortedcontainers>=2.4.0
 data_structures_and_algorithms@ git+https://github.com/chris-henry-holland/python-DataStructuresAndAlgorithms
+
+[testing]
 unittest_utilities@ git+https://github.com/chris-henry-holland/python-UnittestUtilities

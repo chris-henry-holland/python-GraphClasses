@@ -72,11 +72,11 @@ class TestSCCAlgorithmsTemplate(TestGraphMethodTemplate):
     
     res_type_alias_lst = [Dict[Hashable, Hashable]]
     
-    def resultEqualityFunction(self, res1: res_type_alias_lst[0],\
-            res2: res_type_alias_lst[0]) -> bool:
+    def resultEqualityFunction(self, res1: Dict[Hashable, Hashable],\
+            res2: Dict[Hashable, Hashable]) -> bool:
         return SCCReprEqual(res1, res2)
     
-    def resultString(self, res: res_type_alias_lst[0],\
+    def resultString(self, res: Dict[Hashable, Hashable],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a strongly connected component representative "\
@@ -85,7 +85,7 @@ class TestSCCAlgorithmsTemplate(TestGraphMethodTemplate):
     def methodResultTest(self, obj: ExplicitGraphTemplate,\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Dict[Hashable, Hashable]]=None)\
             -> bool:
         test_func = lambda res:\
                 (checkSCCRepr(obj, res),\
@@ -196,15 +196,13 @@ class TestCondenseSCC(TestGraphMethodTemplate):
         }
         return known_good_results
     
-    res_type_alias_lst = [Tuple[Union[Dict[Hashable, Hashable],\
-            Dict[Hashable, Set[Hashable]],\
-            ExplicitUnweightedDirectedGraph]]]
+    res_type_alias_lst = [Tuple[Union[Dict[Hashable, Hashable], Dict[Hashable, Set[Hashable]], ExplicitUnweightedDirectedGraph]]]
     
-    def resultEqualityFunction(self, res1: res_type_alias_lst[-1],\
-            res2: res_type_alias_lst[-1]) -> bool:
+    def resultEqualityFunction(self, res1: Tuple[Union[Dict[Hashable, Hashable], Dict[Hashable, Set[Hashable]], ExplicitUnweightedDirectedGraph]],\
+            res2: Tuple[Union[Dict[Hashable, Hashable], Dict[Hashable, Set[Hashable]], ExplicitUnweightedDirectedGraph]]) -> bool:
         return condensedSCCEqual(res1, res2)
     
-    def resultString(self, res: res_type_alias_lst[-1],\
+    def resultString(self, res: Tuple[Union[Dict[Hashable, Hashable], Dict[Hashable, Set[Hashable]], ExplicitUnweightedDirectedGraph]],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a condensed representation of the graph into its "\
@@ -221,7 +219,7 @@ class TestCondenseSCC(TestGraphMethodTemplate):
     def methodResultTest(self, obj: ExplicitGraphTemplate,\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Tuple[Union[Dict[Hashable, Hashable], Dict[Hashable, Set[Hashable]], ExplicitUnweightedDirectedGraph]]]=None)\
             -> int:
         test_func = lambda res:\
                 (checkCondensedSCC(obj, *res),\

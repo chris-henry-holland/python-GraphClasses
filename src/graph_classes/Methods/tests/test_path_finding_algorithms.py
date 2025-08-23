@@ -108,14 +108,13 @@ class TestAllPairsPathfinderAlgorithmsTemplate(\
         }
         return known_good_results
     
-    res_type_alias_lst = [Dict[Hashable, Dict[Hashable,\
-            Tuple[Union[int, float, Optional[Hashable]]]]]]
+    res_type_alias_lst = [Dict[Hashable, Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]]]
     
     #def resultEqualityFunction(self, res1: res_type_alias_lst[0],\
     #        res2: res_type_alias_lst[0]) -> bool:
     #    res1 == res2
     
-    def resultString(self, res: res_type_alias_lst[0],\
+    def resultString(self, res: Dict[Hashable, Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a minimum distances array represented by the "\
@@ -132,7 +131,7 @@ class TestAllPairsPathfinderAlgorithmsTemplate(\
     def methodResultTest(self, obj: ExplicitGraphTemplate,\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Dict[Hashable, Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]]]=None)\
             -> bool:
         test_func = lambda res:\
                 (checkAllPairsPathfinder(obj, res, eps=self.eps),\
@@ -290,14 +289,13 @@ class TestAllPairsDistancesAlgorithmsTemplate(\
         }
         return known_good_results
     
-    res_type_alias_lst = [Dict[Hashable, Dict[Hashable,\
-            Tuple[Union[int, float, Optional[Hashable]]]]]]
+    res_type_alias_lst = [Dict[Hashable, Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]]]
     
     #def resultEqualityFunction(self, res1: res_type_alias_lst[0],\
     #        res2: res_type_alias_lst[0]) -> bool:
     #    res1 == res2
     
-    def resultString(self, res: res_type_alias_lst[0],\
+    def resultString(self, res: Dict[Hashable, Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a minimum distances array represented by the "\
@@ -311,7 +309,7 @@ class TestAllPairsDistancesAlgorithmsTemplate(\
     def methodResultTest(self, obj: ExplicitGraphTemplate,\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Dict[Hashable, Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]]]=None)\
             -> bool:
         test_func = lambda res:\
                 (checkAllPairsDistances(obj, res, eps=self.eps,\
@@ -444,14 +442,13 @@ class TestFromSourcesPathfinderAlgorithmsTemplate(\
         }
         return known_good_results
     
-    res_type_alias_lst = [Dict[Hashable,\
-            Tuple[Union[int, float, Optional[Hashable]]]]]
+    res_type_alias_lst = [Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]]
     
     #def resultEqualityFunction(self, res1: res_type_alias_lst[0],\
     #        res2: res_type_alias_lst[0]) -> bool:
     #    res1 == res2
     
-    def resultString(self, res: res_type_alias_lst[0],\
+    def resultString(self, res: Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a minimum distance from source array represented "\
@@ -469,7 +466,7 @@ class TestFromSourcesPathfinderAlgorithmsTemplate(\
     def methodResultTest(self, obj: ExplicitGraphTemplate,\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Dict[Hashable, Tuple[Union[int, float, Optional[Hashable]]]]]=None)\
             -> bool:
         test_func = lambda res:\
                 (checkFromSourcesPathfinder(obj, res, *method_args,\
@@ -685,7 +682,7 @@ class TestFromSourcesDistancesAlgorithmsTemplate(\
     #        res2: res_type_alias_lst[0]) -> bool:
     #    res1 == res2
     
-    def resultString(self, res: res_type_alias_lst[0],\
+    def resultString(self, res: Dict[Hashable, Tuple[Union[int, float]]],\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None) -> str:
         return "a minimum distance from sources array represented by "\
@@ -700,7 +697,7 @@ class TestFromSourcesDistancesAlgorithmsTemplate(\
     def methodResultTest(self, obj: ExplicitGraphTemplate,\
             method_args: Optional[Tuple[Hashable]]=None,\
             method_kwargs: Optional[Dict[str, Any]]=None,\
-            known_result: Optional[res_type_alias_lst[0]]=None)\
+            known_result: Optional[Dict[Hashable, Tuple[Union[int, float]]]]=None)\
             -> bool:
         test_func = lambda res:\
                 (checkFromSourcesDistances(obj, res, *method_args,\

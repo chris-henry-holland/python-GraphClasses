@@ -58,9 +58,11 @@ def deconstructArgsKwargsOptions(args_opts: Tuple[Tuple[Any]],\
         kwargs_opts: Dict[str, Tuple[Any]])\
         -> Tuple[Tuple[List[Union[int, str]], List[Tuple[Any]]]]:
     
-    err_msg_rand = "The integer values in args_opts and kwargs_opts "\
-            "(if any) must be collectively distinct and consecutive "\
-            "non-negative integers starting at 0"
+    err_msg_rand = (
+        "The integer values in args_opts and kwargs_opts (if any) "
+        "must be collectively distinct and consecutive "
+        "non-negative integers starting at 0"
+    )
         
     args_deconstr = ([], [], [], [])
     rand_seen = set()

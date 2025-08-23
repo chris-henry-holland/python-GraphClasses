@@ -40,9 +40,13 @@ keywords = [
 dependencies = [
     "sortedcontainers>=2.4.0",
     "data_structures_and_algorithms @ git+https://github.com/chris-henry-holland/python-DataStructuresAndAlgorithms",
-    "unittest_utilities @ git+https://github.com/chris-henry-holland/python-UnittestUtilities",
 ]
 requires-python = ">=3.11"
+
+[project.optional-dependencies]
+testing = [
+    "unittest_utilities @ git+https://github.com/chris-henry-holland/python-UnittestUtilities",
+]
 
 [project.urls]
 Repository = "https://github.com/chris-henry-holland/python-GraphClasses.git"
