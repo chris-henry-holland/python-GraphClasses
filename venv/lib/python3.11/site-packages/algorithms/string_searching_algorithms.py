@@ -918,8 +918,8 @@ class AhoCorasick(object):
             for idx, w in enumerate(self.words):
                 if not bm: break
                 if bm & 1:
-                    res.setdefault(w, [])
-                    res[i].append(i - len(w) + 1)
+                    res.setdefault(idx, [])
+                    res[idx].append(i - len(w) + 1)
                 bm >>= 1
         return res
     

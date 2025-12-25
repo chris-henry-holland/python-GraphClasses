@@ -11,6 +11,7 @@ from typing import (
     Generator,
     Any,
     Callable,
+    Hashable,
 )
 
 from graph_classes.limited_graph_types import (
@@ -111,7 +112,7 @@ class Grid(object):
             return
         recur()
         return res
-    
+
     def index2Coordinates(self, idx: int) -> Tuple[int]:
         if not 0 <= idx < self.length:
             raise ValueError(f"The index must be an integer between "
@@ -371,25 +372,51 @@ class GridGraphTemplate(LimitedGraphTemplate):
         self.move_kwargs["block_func"] = block_func
         super().__init__(**kwargs)
     
-    def index2Vertex(self, idx: int) -> Tuple[int]:
-        grid_idx, state_idx = self._index2GridIndex(idx)
-        return self._gridIndex2Vertex(grid_idx, state_idx)
-    
     def gridIndexNState(self, grid_idx: int) -> int:
         return self.n_state_func(self.grid, grid_idx) if\
                 0 <= grid_idx < self.grid.length else 0
         #if not hasattr(self, "_vertices_grid_index_dict"):
         #    return int(0 <= grid_idx < self.grid.length)
         #return self._vertices_grid_index_dict.get(grid_idx, (0, 0))[1]
-    
-    def _vertex2GridIndex(self, vertex: Tuple[Union[Tuple[int], int]])\
-            -> Tuple[int]:
-        return (self.grid.coordinates2Index(vertex[0]), vertex[1])
+
+    def containsVertex(self, vertex: Hashable) -> bool:
+        """
+        Finds whether the hashable object vertex represents a
+        vertex in the graph.
+
+        Args:
+            Required positional:
+            vertex (hashable object): The hashable object whose
+                    status as representing a vertex is to be
+                    established.
+        
+        Returns:
+        Boolean (bool) giving True if vertex represents a vertex
+        in the graph and False otherwise.
+        """
+        if not isinstance(vertex, (list, tuple)): return False
+        if len(vertex) != 2: return False
+        if len(vertex[0]) != len(self.grid.shape): return False
+        grid_idx = 0
+        for (j, s) in zip(vertex[0], self.grid.shape):
+            if not -s <= j < s: return False
+            grid_idx = grid_idx * s + (j if j >= 0 else s + j)
+        if not 0 <= vertex[1] < self.gridIndexNState(grid_idx):
+            return False
+        return True
     
     def _gridIndex2Vertex(self, grid_idx: int, state_idx: int=0)\
-            -> Tuple[int]:
+            -> Tuple[Tuple[int], int]:
         return (self.grid.index2Coordinates(grid_idx), state_idx)
 
+    def index2Vertex(self, idx: int) -> Tuple[Tuple[int], int]:
+        grid_idx, state_idx = self._index2GridIndex(idx)
+        return self._gridIndex2Vertex(grid_idx, state_idx)
+    
+    def _vertex2GridIndex(self, vertex: Tuple[Union[Tuple[int], int]])\
+            -> Tuple[Tuple[int], int]:
+        return (self.grid.coordinates2Index(vertex[0]), vertex[1])
+    
     def _gridIndex2Index(self, grid_idx: int, state_idx: int=0) -> int:
         #if grid_idx < 0 or grid_idx >= self.grid.length:
         #    raise ValueError("grid_idx must be between 0 and "\

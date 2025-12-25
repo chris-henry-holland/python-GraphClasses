@@ -293,6 +293,6 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         return
     
 if __name__ == "__main__":
-    #print("testing network_flow_algorithms")
+    print("testing network_flow_algorithms")
     runAllTests()
 

@@ -1,4 +1,4 @@
-#!/home/chris/Coding_projects/Github/chris-henry-holland/Python/GraphClasses/python-GraphClasses/venv/bin/python
+#!/home/chris/Coding_projects/Github/chris-henry-holland/Python/GraphClasses/python-GraphClasses/venv/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

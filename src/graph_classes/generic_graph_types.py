@@ -58,6 +58,10 @@ class GenericGraphTemplate(ABC):
         self._store_adj = store_adj
     
     @abstractmethod
+    def containsVertex(self, vertex: Hashable) -> bool:
+        pass
+
+    @abstractmethod
     def vertex2Index(self, vertex: Hashable) -> int:
         pass
     

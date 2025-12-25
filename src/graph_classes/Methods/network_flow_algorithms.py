@@ -6,29 +6,48 @@ from typing import (
     TYPE_CHECKING,
     List,
     Tuple,
+    Dict,
     Optional,
     Union,
     Hashable,
+    Callable,
 )
 
 if TYPE_CHECKING:
     from graph_classes.limited_graph_types import (
         LimitedGraphTemplate,
+        LimitedDirectedGraphTemplate,
     )
 
 from graph_classes.explicit_graph_types import (
     ExplicitWeightedDirectedGraph,
 )
 
+# TODO:
+#  - update documentation of fordFulkerson and checkFlowValid functions
+#    to include the new variables edge_capacities_function_index,
+#    edge_flow_lower_bound_function_index and vertex_balance_function_index
+#  - Add documentation to the new functions findPossibleNetworkCirculationFlowWithVertexBalancesIndex()
+#    and findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex()
+#  - Add functions findPossibleNetworkCirculationFlowWithVertexBalances() and
+#    findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBound()
+#  - Add unit tests that check circulation flows found by the new functions
+#    and fordFulkerson for flows for multiple sources or sinks, with or without
+#    source/sink flow restrictions (in test/test_network_flow_algorithms.py)
+#  - Add functions that calculate network circulation flows with vertex balances
+#    with or without edge flow lower bounds to get a flow with minimum cost,
+#    for a costs per unit flow for the different edges
+
 ### Ford-Fulkerson algorithm for maximum flow through a network ###
 
 def fordFulkersonIndex(
-        self,
-        start_idx: int,
-        end_idx: int,
-        eps: float=10 ** -5,
-        return_poss_distribution: bool=True
-) -> Tuple[Union[int, float, Optional[ExplicitWeightedDirectedGraph]]]:
+    self,
+    start_inds: Dict[int, Union[int, float]],
+    end_inds: Dict[int, Union[int, float]],
+    edge_capacities_function_index: Optional[Callable[[LimitedGraphTemplate, int, int], Union[int, float]]]=None,
+    eps: float=10 ** -5,
+    return_poss_distribution: bool=True,
+) -> Tuple[Union[int, float], Optional[ExplicitWeightedDirectedGraph]]:
     """
     Method implementing the Ford-Fulkerson algorithm to find the
     maximum flow from the vertex with index start_idx to the vertex
@@ -43,32 +62,43 @@ def fordFulkersonIndex(
     
     Args:
         Required positional:
-        start_idx (int): The index of the vertex of the graph from
-                which the flow starts (i.e. the source).
-                Should be integer between 0 and (self.n - 1) inclusive
-        end_idx (int): The index of the vertex of the graph from
-                which the flow ends (i.e. the sink).
-                Should be integer between 0 and (self.n - 1) inclusive
-                and different to start_idx
-        
+        start_inds (dict): Dictionary whose keys are the indices of
+                the vertices of the graph from which the flow starts
+                (i.e. the sources), with corresponding value being
+                the maximum total allowed flow from that vertex (or
+                None if there is no such limit).
+                The keys should be integers between 0 and (self.n - 1)
+                inclusive
+        end_inds (dict): Dictionary whose keys are the indices of
+                the vertices of the graph from which the flow ends
+                (i.e. the sinkss), with corresponding value being
+                the maximum total flow into that vertex (or None if
+                there is no such limit).
+                The keys should be integers between 0 and (self.n - 1)
+                inclusive, and none of the keys may also be keys
+                in start_inds.
+                
         Optional named:
+        edge_capacities_function_index (callable or None):
+
+            Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
                 less than this number are considered to be equal).
             Default: 10 ** -5
         return_poss_distribution (bool): If True, then finds a possible
-                flow through the network that has the maximum flow from
-                the vertex with index start_idx to the vertex with
-                index end_idx, representing this flow by the total
-                direct flow between each adjacent pair of vertices
-                for which there is non-zero direct flow from the first
-                to the second.
+                flow through the network that maximises the flow amount,
+                representing this flow by a weighted directed graph
+                whose vertices are the vertices with non-zero flow
+                in and/or out and whose edges are those with non-zero
+                flow, weighted according to the flow quantity through
+                that edge.
             Default: True
     
     Returns:
     2-tuple whose index 0 contains the size of the maximum possible
-    flow from the vertex with index start_idx to the vertex with index
-    end_idx in the network represented by graph, and whose index 1
+    flow through the given network for the start and end vertices
+    and maximum flows given by start_inds and end_inds, and whose index 1
     contains None if return_poss_distribution is given as False or an
     ExplicitWeightedDirectedGraph object representing a possible flow
     distribution through the network with that flow, where the vertices
@@ -83,35 +113,57 @@ def fordFulkersonIndex(
         raise NotImplementedError("The method fordFulkersonIndex() "
                 "cannot be used for graphs with negative weight "
                 "edges.")
-    elif start_idx == end_idx:
-        raise ValueError("The values of input arguments start_idx and "
-                "end_idx in the method fordFulkersonIndex() must be "
-                "different") 
+    elif set(start_inds.keys()).isdisjoint(end_inds):
+        raise ValueError(
+            "The keys of input argument dictionaries start_inds and "
+            "end_inds in the method fordFulkersonIndex() cannot share "
+            "any values.") 
     
+    source_outgoing_edge_capacities = {x: (float("inf") if y is None else y) for x, y in start_inds}
+    sink_incoming_edge_capacities = {x: (float("inf") if y is None else y) for x, y in end_inds}
+    print(f"start_inds = {start_inds}")
+    print(f"end_inds = {end_inds}")
+
+    if edge_capacities_function_index is None:
+        edge_capacities_function_index = lambda graph, v1_idx, v2_idx: graph.getAdjTotalWeightsIndex(v1_idx).get(v2_idx, 0)
+
     # Direct flow capacities between each pair of vertices that
     # share at least one edge
-    capacities = [dict(self.getAdjTotalWeightsIndex(idx))\
-            for idx in range(self.n)]
+    
+    capacities = [{} for _ in range(self.n)]
+    for v1_idx in range(self.n):
+        for v2_idx in self.getAdjIndex(v1_idx).keys():
+            c = edge_capacities_function_index(v1_idx, v2_idx)
+            if c: capacities[v1_idx][v2_idx] = c
+    if return_poss_distribution:
+        # storing the original capacities for use later
+        orig_capacities = [dict(x) for x in capacities]
+    source_idx = self.n
+    sink_idx = self.n + 1
+    capacities.append({x: (float("inf") if y is None else y) for x, y in start_inds})
+    capacities.append({})
+    for idx, c in end_inds.items():
+        capacities[idx][sink_idx] = float("inf") if c is None else c
     #print(capacities)
     def dfs() -> Tuple[Union[int, float, List[int]]]:
-        prev = {start_idx: None}
-        stk = [(start_idx, float("inf"))]
+        prev = {source_idx: None}
+        stk = [(source_idx, float("inf"))]
         while stk:
             idx, flow = stk.pop()
-            for idx2, mx_flow in capacities[idx].items():
-                if idx2 in prev.keys(): continue
+            for v2_idx, mx_flow in capacities[idx].items():
+                if v2_idx in prev.keys(): continue
                 flow2 = min(flow, mx_flow)
-                prev[idx2] = idx
-                if idx2 == end_idx: break
-                stk.append((idx2, flow2))
+                prev[v2_idx] = idx
+                if v2_idx == sink_idx: break
+                stk.append((v2_idx, flow2))
             else: continue
             break
         else: return ()
         #print(prev)
         path = []
-        while idx2 is not None:
-            path.append(idx2)
-            idx2 = prev[idx2]
+        while v2_idx is not None:
+            path.append(v2_idx)
+            v2_idx = prev[v2_idx]
         return (flow2, path[::-1])
     
     tot_flow = 0
@@ -122,33 +174,37 @@ def fordFulkersonIndex(
         tot_flow += flow
         #print(self.n, path)
         for i in range(len(path) - 1):
-            idx1, idx2 = path[i], path[i + 1]
-            capacities[idx1][idx2] -= flow
-            if capacities[idx1][idx2] < eps:
-                capacities[idx1].pop(idx2)
-            #print(self.n, idx2)
-            capacities[idx2][idx1] = capacities[idx2].get(idx1, 0) + flow
+            v1_idx, v2_idx = path[i], path[i + 1]
+            capacities[v1_idx][v2_idx] -= flow
+            if capacities[v1_idx][v2_idx] < eps:
+                capacities[v1_idx].pop(v2_idx)
+            #print(self.n, v2_idx)
+            capacities[v2_idx][v1_idx] = capacities[v2_idx].get(v1_idx, 0) + flow
     if not return_poss_distribution:
         return tot_flow, None
     flow_edges = []
     vertices = []
-    for idx1 in range(self.n):
-        v1 = self.index2Vertex(idx1)
+    for v1_idx in range(self.n):
+        v1 = self.index2Vertex(v1_idx)
         vertices.append(v1)
-        orig_capacity_dict = self.getAdjTotalWeightsIndex(idx1)
-        for idx2, orig_capacity in orig_capacity_dict.items():
-            v2 = self.index2Vertex(idx2)
-            net_flow = orig_capacity - capacities[idx1].get(idx2, 0)
+        for v2_idx, orig_capacity in orig_capacities[v1_idx].items():
+            if v2_idx >= self.n: continue
+            v2 = self.index2Vertex(v2_idx)
+            net_flow = orig_capacity - capacities[v1_idx].get(v2_idx, 0)
             if net_flow >= eps:
                 flow_edges.append((v1, v2, net_flow))
     flow_graph = ExplicitWeightedDirectedGraph(vertices, flow_edges)
     #print(flows)
     return tot_flow, flow_graph
 
-def fordFulkerson(self,\
-        start: Hashable, end: Hashable, eps: float=10 ** -5,\
-        return_poss_distribution: bool=True)\
-        -> Tuple[Union[int, float, Optional[ExplicitWeightedDirectedGraph]]]:
+def fordFulkerson(
+    self,
+    starts: Dict[Hashable, Optional[Union[int, float]]],
+    ends: Dict[Hashable, Optional[Union[int, float]]],
+    edge_capacities_function: Optional[Callable[[LimitedGraphTemplate, Hashable, Hashable], Union[int, float]]]=None,
+    eps: float=10 ** -5,
+    return_poss_distribution: bool=True,
+) -> Tuple[Union[int, float, Optional[ExplicitWeightedDirectedGraph]]]:
     """
     Method implementing the Ford-Fulkerson algorithm to find the
     maximum flow from the vertex start to the vertex end for the
@@ -163,15 +219,21 @@ def fordFulkerson(self,\
     
     Args:
         Required positional:
-        start (hashable object): The vertex of the graph from which the
-                flow starts (i.e. the source).
-                Should be one of the vertices of the graph
-        end (hashable object): The vertex of the graph from which the
-                flow ends (i.e. the sink).
-                Should be one of the vertices of the graph and distinct
-                from start
+        starts (dict): Dictionary whose keys are the vertices of
+                the graph from which the flow starts (i.e. the sources),
+                with corresponding value being the maximum total allowed
+                flow from that vertex (or None if there is no such limit).
+        ends (dict): Dictionary whose keys are the vertices of
+                the graph from which the flow ends (i.e. the sinks),
+                with corresponding value being the maximum total allowed
+                flow from that vertex (or None if there is no such limit).
+                The vertices should all be distinct from the vertices in
+                starts.
         
         Optional named:
+        edge_capacities_function (callable or None):
+
+            Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
                 less than this number are considered to be equal).
@@ -186,8 +248,8 @@ def fordFulkerson(self,\
     
     Returns:
     2-tuple whose index 0 contains the size of the maximum possible
-    flow from the vertex with index start_idx to the vertex with index
-    end_idx in the network represented by graph, and whose index 1
+    flow through the given network for the start and end vertices
+    and maximum flows given by start_inds and end_inds, and whose index 1
     contains None if return_poss_distribution is given as False or an
     ExplicitWeightedDirectedGraph object representing a possible flow
     distribution through the network with that flow, where the vertices
@@ -198,23 +260,39 @@ def fordFulkerson(self,\
     first vertex to the second with no intervening vertices), with the
     weight of the edge representing the size of this direct flow.
     """
+    # review- should relabel the vertices of flow_graph to match those
+    # of the original graph
+
     #print(self.shape, self.grid.arr_flat)
     #print(self.n_state_runs_graph_starts)
     #print(self.n_state_runs_grid_starts)
     #print(start, end, self.vertex2Index(start), self.vertex2Index(end))
-    tot_flow, flow_graph = self.fordFulkersonIndex(\
-            self.vertex2Index(start), self.vertex2Index(end),\
-            eps=eps, return_poss_distribution=return_poss_distribution)
+    edge_capacities_function_index = None if edge_capacities_function is None else lambda graph, v1_idx, v2_idx: edge_capacities_function(graph.index2Vertex(v1_idx), graph.index2Vertex(v2_idx))
+    tot_flow, flow_graph = self.fordFulkersonIndex(
+        {self.vertex2Index(x): c for x, c in starts},
+        {self.vertex2Index(x): c for x, c in ends},
+        edge_capacities_function = edge_capacities_function_index,
+        eps=eps,
+        return_poss_distribution=return_poss_distribution,
+    )
+    
     return (tot_flow, flow_graph)
 
-def checkFlowValidIndex(graph: LimitedGraphTemplate,\
-        tot_flow: Union[int, float],\
-        flow_graph: ExplicitWeightedDirectedGraph,\
-        start_idx: int, end_idx: int,\
-        eps: float=10 ** -5, req_max_flow: bool=True,\
-        allow_cycles: bool=True, indices_match: bool=False) -> bool:
+def checkFlowValidIndex(
+    graph: LimitedGraphTemplate,
+    tot_flow: Union[int, float],
+    flow_graph: ExplicitWeightedDirectedGraph,
+    start_inds: Dict[int, Union[int, float]],
+    end_inds: Dict[int, Union[int, float]],
+    edge_capacities_function_index: Optional[Callable[[LimitedGraphTemplate, int, int], Union[int, float]]]=None,
+    edge_flow_lower_bound_function_index: Optional[Callable[[LimitedGraphTemplate, int, int], Union[int, float]]]=None,
+    eps: float=10 ** -5,
+    req_max_flow: bool=True,
+    allow_cycles: bool=True,
+    indices_match: bool=False,
+) -> bool:
     """
-    Function assessing for a network reresented by the graph object
+    Function assessing for a network represented by the graph object
     graph whether the flow distribution given by input argument flows
     (in terms of the vertex indices) with total flow tot_flow from the
     vertex with index start_idx (the source) to the vertex at index
@@ -238,15 +316,29 @@ def checkFlowValidIndex(graph: LimitedGraphTemplate,\
                 straight from the first vertex to the second with no
                 intervening vertices), with the weight of the edge
                 representing the size of this direct flow.
-        start_idx (int): The index of the vertex of the graph from
-                which the flow starts (i.e. the source).
-                Should be integer between 0 and (graph.n - 1) inclusive
-        end_idx (int): The index of the vertex of the graph from
-                which the flow ends (i.e. the sink).
-                Should be integer between 0 and (graph.n - 1) inclusive
-                and different to start_idx
+        start_inds (dict): Dictionary whose keys are the indices of
+                the vertices of the graph from which the flow starts
+                (i.e. the sources), with corresponding value being
+                the maximum total allowed flow from that vertex (or
+                None if there is no such limit).
+                The keys should be integers between 0 and (self.n - 1)
+                inclusive
+        end_inds (dict): Dictionary whose keys are the indices of
+                the vertices of the graph from which the flow ends
+                (i.e. the sinkss), with corresponding value being
+                the maximum total flow into that vertex (or None if
+                there is no such limit).
+                The keys should be integers between 0 and (self.n - 1)
+                inclusive, and none of the keys may also be keys
+                in start_inds.
         
         Optional named:
+        edge_capacities_function_index (callable or None):
+
+            Default: None
+        edge_flow_lower_bound_function_index (callable or None):
+
+            Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
                 less than this number are considered to be equal).
@@ -278,34 +370,97 @@ def checkFlowValidIndex(graph: LimitedGraphTemplate,\
     otherwise (i.e. is not a valid flow or does not satisfy all of the
     requirements).
     """
-    if tot_flow < eps or start_idx: return True
-    net_flux = {start_idx: tot_flow, end_idx: -tot_flow}
+    # Review- need to make sure the handling of negative flows is
+    # appropriate (esp. should negative flows ever be allowed?)
+
+    if tot_flow < eps: return True
+    net_vertex_flow_balance = {}#{start_idx: tot_flow, end_idx: -tot_flow}
     
     flow_to_graph_inds = (lambda idx: idx) if indices_match else\
             (lambda idx:\
             graph.vertex2Index(flow_graph.index2Vertex(idx)))
     
-    idx2_cap_func = (lambda idx1: graph.getAdjTotalWeightsIndex(idx1))\
-            if indices_match else\
-            (lambda idx1: graph.getAdjTotalWeightsIndex(\
-            graph.vertex2Index(flow_graph.index2Vertex(idx1))))
+    if edge_capacities_function_index is None:
+        edge_capacities_function_index = lambda graph, v1_idx, v2_idx: graph.getAdjTotalWeightsIndex(v1_idx).get(v2_idx, 0)
+
+    #idx2_cap_func = (lambda idx1: graph.getAdjTotalWeightsIndex(idx1))\
+    #        if indices_match else\
+    #        (lambda idx1: graph.getAdjTotalWeightsIndex(\
+    #        graph.vertex2Index(flow_graph.index2Vertex(idx1))))
     
+    # Checking that no flow exceeds the capacity
     for idx1 in range(flow_graph.n):
         idx2_flow_dict = flow_graph.getAdjTotalWeightsIndex(idx1)
         if not idx2_flow_dict: continue
-        idx2_capacity_dict =\
-                graph.getAdjTotalWeightsIndex(flow_to_graph_inds(idx1))
+        #idx2_capacity_dict = graph.getAdjTotalWeightsIndex(flow_to_graph_inds(idx1))
         for idx2, flow in idx2_flow_dict.items():
-            if flow <= -eps or flow >= idx2_capacity_dict.get(idx2, 0) + eps:
+            #if flow <= -eps or flow >= idx2_capacity_dict.get(idx2, 0) + eps:
+            #    return False
+            if flow <= -eps or flow >= edge_capacities_function_index(graph, flow_to_graph_inds(idx1), flow_to_graph_inds(idx2)) + eps:
                 return False
             if flow < eps: continue
-            net_flux[idx1] = net_flux.get(idx1, 0) - flow
-            net_flux[idx2] = net_flux.get(idx2, 0) + flow
+            net_vertex_flow_balance[idx1] = net_vertex_flow_balance.get(idx1, 0) - flow
+            net_vertex_flow_balance[idx2] = net_vertex_flow_balance.get(idx2, 0) + flow
             for idx in (idx1, idx2):
-                if abs(net_flux[idx]) < eps:
-                    net_flux.pop(idx)
+                if abs(net_vertex_flow_balance[idx]) < eps:
+                    net_vertex_flow_balance.pop(idx)
     
-    if net_flux:
+    # Checking that any edge with a flow lower bound has at least that much flow
+    if edge_flow_lower_bound_function_index is not None:
+        for v1_idx in range(graph.n):
+            v1_in_graph = flow_graph.containsVertex(v1_idx)
+            for v2_idx in graph.getAdjIndex(v1_idx):
+                lb_flow = edge_flow_lower_bound_function_index(graph, v1_idx, v2_idx) - eps
+                if lb_flow <= 0:
+                    continue
+                if not v1_in_graph: return False
+                if flow_graph.getAdj(v1_idx).get(v2_idx, 0) < lb_flow: return False
+        edge_flow_lower_bound_function_index = lambda graph, v1_idx, v2_idx: 0
+
+    # Checking that each source and sink vertex does not
+    # is indeed a source or sink respectively, that it
+    # does not exceed its capacity, all other vertices
+    # have zero net balance and that the total flow from
+    # sources to sinks is consistent between the two
+    # and matches the given total flow.
+    # Also identifies the sources and sinks that are
+    # saturated (i.e. their net inflow or outflow is
+    # equal to its capacity) for use in establishing
+    # whether the calculated flow is maximal.
+    end_inds_total_flow = 0
+    start_inds_total_flow = 0
+    unsaturated_end_inds = set()
+    unsaturated_start_inds = set()
+    for idx, bal in net_vertex_flow_balance.items():
+        if not bal: continue # should not happen
+        if bal > 0:
+            if idx not in end_inds.keys():
+                # Positive flux for a non-sink vertex
+                return False
+            end_inds_total_flow += bal
+            if end_inds[idx] is not None:
+                if bal > end_inds[idx]:
+                    # Net flow exceeds the capacity of the vertex
+                    return False
+                elif bal < end_inds[idx]:
+                    unsaturated_end_inds.add(idx)
+            continue
+        if idx not in start_inds.keys():
+            # Negative flux for a non-source vertex
+            return False
+        start_inds_total_flow -= bal
+        if start_inds[idx] is not None:
+            if -bal > start_inds[idx]:
+                # Net flow exceeds the capacity of the vertex
+                return False
+            elif -bal < start_inds[idx]:
+                unsaturated_start_inds.add(idx)
+
+    if start_inds_total_flow != end_inds_total_flow or end_inds_total_flow != tot_flow:
+        # Total flow inconsistent with either of the calculated end flows
+        return False
+
+    #if net_flux:
         #print("Inconsistent flux")
         #print(getattr(graph, graph.adj_name))
         #print()
@@ -316,16 +471,16 @@ def checkFlowValidIndex(graph: LimitedGraphTemplate,\
         #print(tot_flow)
         #print()
         #print(net_flux)
-        return False
-    if req_max_flow:
+    #    return False
+    if req_max_flow and unsaturated_start_inds and unsaturated_end_inds:
         graph_to_flow_inds = (lambda idx: idx) if indices_match else\
             (lambda idx:\
             flow_graph.vertex2Index(graph.index2Vertex(idx)))
         # Checking is a maximum flow using the min cut/max flow theorem
         # (i.e. when excluding edges for which the flow equals the
         # capacity, the source and sink should be disconnected)
-        stk = [start_idx]
-        seen = {start_idx}
+        stk = list(unsaturated_start_inds)
+        seen = set(unsaturated_start_inds)
         while stk:
             idx = stk.pop()
             flow_dict = flow_graph.getAdjTotalWeightsIndex(\
@@ -334,7 +489,7 @@ def checkFlowValidIndex(graph: LimitedGraphTemplate,\
                 if idx2 in seen: continue
                 w2 = w - flow_dict.get(graph_to_flow_inds(idx2), 0)
                 if w2 < eps: continue
-                if idx2 == end_idx: return False
+                if idx2 in unsaturated_end_inds: return False
                 seen.add(idx2)
                 stk.append(idx2)
     if allow_cycles: return True
@@ -354,18 +509,24 @@ def checkFlowValidIndex(graph: LimitedGraphTemplate,\
     #print(top_sort)
     return bool(top_sort)
 
-def checkFlowValid(graph: LimitedGraphTemplate,\
-        tot_flow: Union[int, float],\
-        flow_graph: ExplicitWeightedDirectedGraph,\
-        start: Hashable, end: Hashable,\
-        eps: float=10 ** -5, req_max_flow: bool=True,\
-        allow_cycles: bool=False, indices_match: bool=False) -> bool:
+def checkFlowValid(
+    graph: LimitedGraphTemplate,
+    tot_flow: Union[int, float],
+    flow_graph: ExplicitWeightedDirectedGraph,
+    starts: Hashable,
+    ends: Hashable,
+    eps: float=10 ** -5,
+    req_max_flow: bool=True,
+    allow_cycles: bool=False,
+    indices_match: bool=False,
+) -> bool:
     """
     Function assessing for a network reresented by the graph object
     graph whether the flow distribution given by input argument flows
     (in terms of the vertex indices) with total flow tot_flow from the
-    vertex start (the source) to the vertex end (the sink) is a valid
-    flow distribution satisfying the specified requirements.
+    vertices in starts (the sources) to the vertices in ends (the
+    sinks) is a valid flow distribution satisfying the specified
+    requirements.
     
     Args:
         Required positional:
@@ -384,13 +545,16 @@ def checkFlowValid(graph: LimitedGraphTemplate,\
                 straight from the first vertex to the second with no
                 intervening vertices), with the weight of the edge
                 representing the size of this direct flow.
-        start (hashable object): The vertex of the graph from which the
-                flow starts (i.e. the source).
-                Should be one of the vertices of graph and flow_graph
-        end (hashable object): The vertex of the graph from which the
-                flow ends (i.e. the sink).
-                Should be one of the vertices of graph and flow_graph
-                and distinct from start
+        starts (dict): Dictionary whose keys are the vertices of
+                the graph from which the flow starts (i.e. the sources),
+                with corresponding value being the maximum total allowed
+                flow from that vertex (or None if there is no such limit).
+        ends (dict): Dictionary whose keys are the vertices of
+                the graph from which the flow ends (i.e. the sinks),
+                with corresponding value being the maximum total allowed
+                flow from that vertex (or None if there is no such limit).
+                The vertices should all be distinct from the vertices in
+                starts.
         
         Optional named:
         eps (float): Small number representing the tolerance for
@@ -418,7 +582,7 @@ def checkFlowValid(graph: LimitedGraphTemplate,\
     Returns:
     Boolean (bool) giving the value True if flow_graph represents a
     valid flow distribution in the network represented by graph from
-    the vertex start to the vetex end satisfying the specified
+    the vertices starts to the vetices ends satisfying the specified
     requirements (e.g. is a maximum flow and/or contains no cycles) or
     the value False otherwise (i.e. is not a valid flow or does not
     satisfy all of the requirements).
@@ -429,8 +593,144 @@ def checkFlowValid(graph: LimitedGraphTemplate,\
     #    for v2, flow in v2_dict.items():
     #        idx2 = graph.vertex2Index(v2)
     #        flows_idx[idx1][idx2] = flow
-    start_idx = graph.vertex2Index(start)
-    end_idx = graph.vertex2Index(end)
-    return checkFlowValidIndex(graph, tot_flow, flow_graph, start_idx,\
-            end_idx, eps=eps, req_max_flow=req_max_flow,\
-            allow_cycles=allow_cycles, indices_match=indices_match)
+    start_inds = {graph.vertex2Index(x): c for x, c in starts.items()}
+    end_inds = {graph.vertex2Index(x): c for x, c in ends.items()}
+    return checkFlowValidIndex(
+        graph,
+        tot_flow,
+        flow_graph,
+        start_inds,
+        end_inds,
+        eps=eps,
+        req_max_flow=req_max_flow,
+        allow_cycles=allow_cycles,
+        indices_match=indices_match
+    )
+
+def findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
+    self,
+    vertex_balance_function_index: Callable[[LimitedGraphTemplate, int], Union[int, float]],
+    edge_capacities_function_index: Optional[Callable[[LimitedGraphTemplate, int, int], Union[int, float]]]=None,
+    eps: float=10 ** -5,
+) -> Optional[ExplicitWeightedDirectedGraph]:
+    """
+
+    """
+
+    # Positive balance means the vertex is a sink, negative
+    # a source
+    start_inds = {}
+    end_inds = {}
+    
+    for v_idx in range(self.n):
+        bal = vertex_balance_function_index(v_idx)
+        if not bal: continue
+        elif bal > 0: end_inds[v_idx] = bal
+        else: start_inds[v_idx] = -bal
+    starts_capacity = sum(start_inds.values())
+    ends_capacity = sum(end_inds.values())
+    if starts_capacity != ends_capacity:
+        # Overall net vertex balance must be zero
+        return None
+    flow, res = self.fordFulkersonIndex(
+        start_inds,
+        end_inds,
+        edge_capacities_function_index=edge_capacities_function_index,
+        eps=eps,
+        return_poss_distribution=True,
+    )
+    if flow != starts_capacity:
+        # for a valid network circulation, the source and
+        # sink vertices must be fully saturated
+        return None
+    return res
+
+def findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex(
+    self,
+    vertex_balance_function_index: Callable[[LimitedGraphTemplate, int], Union[int, float]]=None,
+    edge_flow_lower_bound_function_index: Callable[[LimitedDirectedGraphTemplate, int, int], Union[int, float]]=None,
+    edge_capacities_function_index: Optional[Callable[[LimitedGraphTemplate, int, int], Union[int, float]]]=None,
+    eps: float=10 ** -5,
+) -> Optional[ExplicitWeightedDirectedGraph]:
+    """
+    
+    """
+    # edge_lower_bound_function cannot return negative values
+
+    if edge_flow_lower_bound_function_index is None:
+        return self.findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
+            vertex_balance_function_index,
+            edge_capacities_function_index=edge_capacities_function_index,
+            eps=eps,
+        )
+
+    vertex_bal_adjust = {}
+
+    for v1_idx in range(self.n):
+        for v2_idx in self.getAdjIndex(v1_idx).keys():
+            lb = edge_flow_lower_bound_function_index(v1_idx, v2_idx)
+            if not lb: continue
+            vertex_bal_adjust[v1_idx] = vertex_bal_adjust.get(v1_idx, 0) + lb
+            if not vertex_bal_adjust[v1_idx]: vertex_bal_adjust.pop(v1_idx)
+            vertex_bal_adjust[v2_idx] = vertex_bal_adjust.get(v1_idx, 0) - lb
+            if not vertex_bal_adjust[v2_idx]: vertex_bal_adjust.pop(v2_idx)
+
+    if vertex_balance_function_index is None:
+        vertex_balance_function_index2 = lambda graph, v_idx: vertex_bal_adjust.get(v_idx, 0)
+    else:
+        vertex_balance_function_index2 = lambda graph, v_idx: vertex_balance_function_index(graph, v_idx) + vertex_bal_adjust.get(v_idx, 0)
+    
+    if edge_capacities_function_index is None:
+        edge_capacities_function_index = lambda graph, v1_idx, v2_idx: graph.getAdjTotalWeightsIndex(v1_idx).get(v2_idx, 0)
+    
+    edge_capacities_function_index2 = lambda graph, v1_idx, v2_idx: edge_capacities_function_index(graph, v1_idx, v2_idx) - edge_flow_lower_bound_function_index(graph, v1_idx, v2_idx)
+
+    flow_graph0 = self.findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
+        vertex_balance_function_index2,
+        edge_capacities_function_index=edge_capacities_function_index2,
+        eps=eps,
+    )
+    if flow_graph0 is None: return None # No flow that fits the constraints is possible
+
+    # Review- try to implement mechanism for changing weights of existing
+    # weighted graphs rather than creating a new graph
+
+    
+    flow_edge_dict = {}
+    #vertices = []
+    for v1_idx0 in range(flow_graph0.n):
+        v1_idx = flow_graph0.index2Vertex(v1_idx0)
+        #vertices.append(v1)
+        for v2_idx0, flow in flow_graph0.getAdjTotalWeightsIndex(v1_idx).items():
+            if not (0 <= v2_idx0 < flow_graph0.n): continue
+            if abs(flow) <= eps: continue
+            v2_idx = self.index2Vertex(v2_idx)
+            flow_edge_dict.setdefault(v1_idx, {})
+            flow_edge_dict[v1_idx][v2_idx] = flow_edge_dict[v1_idx].at(v2_idx) + flow
+    for v1_idx in range(self.n):
+        for v2_idx in self.getAdjIndex(v1_idx).keys():
+            lb_flow = edge_flow_lower_bound_function_index(self, v1_idx, v2_idx)
+            if not lb_flow: continue
+            flow_edge_dict.setdefault(v1_idx, {})
+            flow_edge_dict[v1_idx].setdefault(v2_idx, 0)
+            flow_edge_dict[v1_idx][v2_idx] = flow_edge_dict[v1_idx].get(v2_idx, 0) + lb_flow
+            if not flow_edge_dict[v1_idx][v2_idx]:
+                flow_edge_dict[v1_idx].pop(v2_idx)
+                if not flow_edge_dict[v1_idx]: flow_edge_dict.pop(v1_idx)
+    vertices = []
+    flow_edges = []
+    seen_vertices = set()
+    for v1 in flow_edge_dict.keys():
+        if not flow_edge_dict[v1_idx]: continue
+        if v1 not in seen_vertices:
+            seen_vertices.add(v1)
+            vertices.append(v1)
+        for v2, flow in flow_edge_dict[v1_idx].items():
+            if not abs(flow) <= eps: continue
+            if v2 not in seen_vertices:
+                seen_vertices.add(v2)
+                vertices.append(v2)
+            flow_edges.append((v1, v2, flow) if flow > 0 else (v2, v1, -flow))
+
+    flow_graph = ExplicitWeightedDirectedGraph(vertices, flow_edges)
+    return flow_graph

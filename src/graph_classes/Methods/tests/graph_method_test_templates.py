@@ -39,7 +39,6 @@ sys.path.append(pkg_path)
 #sys.path.append(os.path.abspath(f"{curr_dir}/../../../../unittest_templates"))
 
 #addUnittestTemplateDirectory()
-
 from unittest_templates.method_test_templates import TestMethodTemplate
 
 #sys.path.append(os.path.abspath(f"{curr_dir}/../../../"))

@@ -122,6 +122,8 @@ methodname_dicts["network_flow_algorithms"] = {
     LimitedGraphTemplate: [
         "fordFulkersonIndex",
         "fordFulkerson",
+        "findPossibleNetworkCirculationFlowWithVertexBalancesIndex",
+        "findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex",
     ]
 }
 

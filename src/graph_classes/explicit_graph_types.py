@@ -27,6 +27,8 @@ from graph_classes.limited_graph_types import (
     LimitedWeightedUndirectedGraphTemplate,
 )
 
+# Review- consider adding method to relabel the vertices
+
 class ExplicitGraphTemplate(LimitedGraphTemplate):
     
     def __init__(
@@ -48,6 +50,23 @@ class ExplicitGraphTemplate(LimitedGraphTemplate):
             self._degrees_index = [0] * self.n
         super().__init__(*args, **kwargs)
     
+    def containsVertex(self, vertex: Hashable) -> bool:
+        """
+        Finds whether the hashable object vertex represents a
+        vertex in the graph.
+
+        Args:
+            Required positional:
+            vertex (hashable object): The hashable object whose
+                    status as representing a vertex is to be
+                    established.
+        
+        Returns:
+        Boolean (bool) giving True if vertex represents a vertex
+        in the graph and False otherwise.
+        """
+        return vertex in self.vertex_dict.keys()
+
     def vertex2Index(self, vertex: Hashable) -> int:
         """
         For a given vertex in the graph, returns the index of that
