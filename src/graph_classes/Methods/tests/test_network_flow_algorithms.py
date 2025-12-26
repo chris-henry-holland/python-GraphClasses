@@ -25,8 +25,12 @@ pkg_path = "/".join(path_lst)
 sys.path.append(pkg_path)
 """
 
-from graph_classes.Methods.tests.graph_method_test_templates import (
+from unittest_templates.utils import (
     toString,
+)
+
+from graph_classes.Methods.tests.graph_method_test_templates import (
+    
     TestGraphMethodTemplate,
 )
         
@@ -63,40 +67,40 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         known_good_results = {
             ExplicitWeightedDirectedGraph: [
                 {"obj_func": (lambda cls2: cls2(range(2), ())),\
-                        "opts": [{"args": (0, 1), "result": 0}]},
+                        "opts": [{"args": ({0: float("inf")}, {1: float("inf")}), "result": 0}]},
                 {"obj_func": (lambda cls2: cls2(range(2), ((0, 1, 5),))),\
-                        "opts": [{"args": (0, 1), "result": 5}]},
+                        "opts": [{"args": ({0: float("inf")}, {1: float("inf")}), "result": 5}]},
                 # From https://www.geeksforgeeks.org/ford-fulkerson-algorithm-for-maximum-flow-problem/
                 {"obj_func": (lambda cls2: cls2(range(6), ((0, 1, 16),\
                         (0, 2, 13), (1, 2, 10), (1, 3, 12), (2, 1, 4),\
                         (2, 4, 14), (3, 2, 9), (3, 5, 20), (4, 3, 7),\
                         (4, 5, 4)))),\
-                        "opts": [{"args": (0, 5), "result": 23}]},
+                        "opts": [{"args": ({0: float("inf")}, {5: float("inf")}), "result": 23}]},
             ],
             GridUnweightedUndirectedGraph: [
                 {"obj_func": (lambda cls2: cls2(Grid(2,\
                         [[False, False], [False, False]]),\
                         **cls.binaryGridGraphKwargs(0))),\
-                        "opts": [{"args": (((0, 0), 0), ((1, 1), 0)), "result": 2},\
-                        {"args": (((0, 0), 0), ((1, 0), 0)), "result": 2}]},
+                        "opts": [{"args": ({((0, 0), 0): float("inf")}, {((1, 1), 0): float("inf")}), "result": 2},\
+                        {"args": ({((0, 0), 0): float("inf")}, {((1, 0), 0): float("inf")}), "result": 2}]},
                 {"obj_func": (lambda cls2: cls2(Grid(2,\
                         [[False, False], [False, False]]),\
                         **cls.binaryGridGraphKwargs(1))),\
-                        "opts": [{"args": (((0, 0), 0), ((1, 1), 0)), "result": 3},\
-                        {"args": (((0, 0), 0), ((1, 0), 0)), "result": 3}]},
+                        "opts": [{"args": ({((0, 0), 0): float("inf")}, {((1, 1), 0): float("inf")}), "result": 3},\
+                        {"args": ({((0, 0), 0): float("inf")}, {((1, 0), 0): float("inf")}), "result": 3}]},
                 {"obj_func": (lambda cls2: cls2(Grid(2,\
                         [[False, True], [False, False]]),\
                         **cls.binaryGridGraphKwargs(0))),\
-                        "opts": [{"args": (((0, 0), 0), ((1, 1), 0)), "result": 1},\
-                        {"args": (((0, 0), 0), ((1, 0), 0)), "result": 1}]},
+                        "opts": [{"args": ({((0, 0), 0): float("inf")}, {((1, 1), 0): float("inf")}), "result": 1},\
+                        {"args": ({((0, 0), 0): float("inf")}, {((1, 0), 0): float("inf")}), "result": 1}]},
                 {"obj_func": (lambda cls2: cls2(Grid(2,\
                         [[False, True], [True, False]]),\
                         **cls.binaryGridGraphKwargs(0))),\
-                        "opts": [{"args": (((0, 0), 0), ((1, 1), 0)), "result": 0}]},
+                        "opts": [{"args": ({((0, 0), 0): float("inf")}, {((1, 1), 0): float("inf")}), "result": 0}]},
                 {"obj_func": (lambda cls2: cls2(Grid(2,\
                         [[False, True], [True, False]]),\
                         **cls.binaryGridGraphKwargs(1))),\
-                        "opts": [{"args": (((0, 0), 0), ((1, 1), 0)), "result": 1}]},
+                        "opts": [{"args": ({((0, 0), 0): float("inf")}, {((1, 1), 0): float("inf")}), "result": 1}]},
             ]
         }
         return known_good_results
@@ -106,13 +110,13 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         known_err = {
             ExplicitWeightedDirectedGraph: [
                 {"obj_func": (lambda cls2: cls2(range(2), ((0, 1, -1),))),\
-                        "opts": [{"args": (0, 1), "err": NotImplementedError}]},
+                        "opts": [{"args": ({0: float("inf")}, {1: float("inf")}), "err": NotImplementedError}]},
                 {"obj_func": (lambda cls2: cls2(range(2), ((0, 1, 1),))),\
-                        "opts": [{"args": (0, 2), "err": KeyError}]},
+                        "opts": [{"args": ({0: float("inf")}, {2: float("inf")}), "err": KeyError}]},
                 {"obj_func": (lambda cls2: cls2(range(2), ((0, 1, 1),))),\
-                        "opts": [{"args": (-1, 1), "err": KeyError}]},
+                        "opts": [{"args": ({-1: float("inf")}, {1: float("inf")}), "err": KeyError}]},
                 {"obj_func": (lambda cls2: cls2(range(2), ((0, 1, 1),))),\
-                        "opts": [{"args": (0, 0), "err": ValueError}]},
+                        "opts": [{"args": ({0: float("inf")}, {0: float("inf")}), "err": ValueError}]},
             ]
         }
         return known_err
@@ -129,9 +133,12 @@ class TestFordFulkerson(TestGraphMethodTemplate):
             res2 = res2[0]
         return abs(res1 - res2) < self.eps
     
-    def resultString(self, res: Union[int, float],\
-            method_args: Optional[Tuple[Hashable]]=None,\
-            method_kwargs: Optional[Dict[str, Any]]=None) -> str:
+    def resultString(
+        self,
+        res: Union[int, float],
+        method_args: Optional[Tuple[Hashable]]=None,
+        method_kwargs: Optional[Dict[str, Any]]=None,
+    ) -> str:
         v1, v2 = method_args
         stem = "a maximum total flow through the network from vertex "\
                 f"{toString(v1)} to vertex {toString(v2)} of "
@@ -187,7 +194,7 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         
         method_args_opts = (0, 1)
         rand_generator_func = lambda graph:\
-                (tuple(graph.index2Vertex(idx) for idx in inds)\
+                (tuple({graph.index2Vertex(idx): float("inf")} for idx in inds)\
                 for inds in\
                 randomKTupleGenerator(graph.n, 2,\
                 mx_n_samples=n_pairs_per_graph,\
@@ -204,19 +211,20 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         n_edges_rng_func =\
                 lambda x: ((x * (x  - 1)) >> 3, (x * (x - 1)) >> 1)
         
-        res = self.randomGraphMethodTestsTemplate(\
-                directed_opts=directed_opts,\
-                n_graph_per_opt=n_graph_per_opt,\
-                n_vertices_rng=n_vertices_rng,\
-                n_edges_rng_func=n_edges_rng_func,\
-                wt_rng=wt_rng,\
-                wt_cls_opts=wt_cls_opts,\
-                allow_self_edges_opts=allow_self_edges_opts,\
-                allow_rpt_edges_opts=allow_rpt_edges_opts,\
-                randomise_indices=randomise_indices,\
-                method_args_opts=method_args_opts,\
-                rand_generator_func=rand_generator_func,\
-                rand_first=False)
+        res = self.randomGraphMethodTestsTemplate(
+                directed_opts=directed_opts,
+                n_graph_per_opt=n_graph_per_opt,
+                n_vertices_rng=n_vertices_rng,
+                n_edges_rng_func=n_edges_rng_func,
+                wt_rng=wt_rng,
+                wt_cls_opts=wt_cls_opts,
+                allow_self_edges_opts=allow_self_edges_opts,
+                allow_rpt_edges_opts=allow_rpt_edges_opts,
+                randomise_indices=randomise_indices,
+                method_args_opts=method_args_opts,
+                rand_generator_func=rand_generator_func,
+                rand_first=False
+        )
         return
     
     def test_fordFulkerson_unweighted_random(self) -> None:
@@ -231,9 +239,8 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         
         method_args_opts = (0, 1)
         rand_generator_func = lambda graph:\
-                (tuple(graph.index2Vertex(idx) for idx in inds)\
-                for inds in\
-                randomKTupleGenerator(graph.n, 2,\
+                (tuple({graph.index2Vertex(idx): float("inf")} for idx in inds)\
+                for inds in randomKTupleGenerator(graph.n, 2,\
                 mx_n_samples=n_pairs_per_graph,\
                 allow_index_repeats=False,\
                 allow_tuple_repeats=False,\
@@ -272,23 +279,25 @@ class TestFordFulkerson(TestGraphMethodTemplate):
         
         method_args_opts = (0, 1)
         rand_generator_func = lambda graph:\
-                (tuple(graph.index2Vertex(idx) for idx in inds)\
+                (tuple({graph.index2Vertex(idx): float("inf")} for idx in inds)\
                 for inds in\
                 randomKTupleGenerator(graph.n, 2,\
                 mx_n_samples=n_pairs_per_graph,\
                 allow_index_repeats=False,\
                 allow_tuple_repeats=False,\
-                nondecreasing=False))
+                nondecreasing=False)
+        )
         
-        res = self.randomBinaryGridUnweightedGraphMethodTestsTemplate(\
-                n_graph_per_opt=n_graph_per_opt,\
-                n_dim_rng=n_dim_rng,\
-                shape_rng_func=shape_rng_func,\
-                p_wall_rng=p_wall_rng,\
-                n_diag_rng_func=n_diag_rng_func,\
-                method_args_opts=method_args_opts,\
-                rand_generator_func=rand_generator_func,\
-                rand_first=False)
+        res = self.randomBinaryGridUnweightedGraphMethodTestsTemplate(
+                n_graph_per_opt=n_graph_per_opt,
+                n_dim_rng=n_dim_rng,
+                shape_rng_func=shape_rng_func,
+                p_wall_rng=p_wall_rng,
+                n_diag_rng_func=n_diag_rng_func,
+                method_args_opts=method_args_opts,
+                rand_generator_func=rand_generator_func,
+                rand_first=False,
+        )
         #print(res)
         return
     

@@ -165,6 +165,8 @@ def argsKwargsRandLastGenerator(\
         else:
             if len(trial_rand) != len(args_opts_deconstr[2])\
                     + len(kwargs_opts_deconstr[2]):
+                print(args_opts_deconstr)
+                print(kwargs_opts_deconstr)
                 print(trial_rand, len(trial_rand), len(args_opts_deconstr[2])\
                     + len(kwargs_opts_deconstr[2]))
                 raise ValueError("The output of rand_generator_func() "\

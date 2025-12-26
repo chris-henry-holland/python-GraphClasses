@@ -109,20 +109,21 @@ def fordFulkersonIndex(
     first vertex to the second with no intervening vertices), with the
     weight of the edge representing the size of this direct flow.
     """
+    #print(start_inds, end_inds)
     if self.neg_weight_edge:
         raise NotImplementedError("The method fordFulkersonIndex() "
                 "cannot be used for graphs with negative weight "
                 "edges.")
-    elif set(start_inds.keys()).isdisjoint(end_inds):
+    elif not set(start_inds.keys()).isdisjoint(end_inds.keys()):
         raise ValueError(
             "The keys of input argument dictionaries start_inds and "
             "end_inds in the method fordFulkersonIndex() cannot share "
             "any values.") 
     
-    source_outgoing_edge_capacities = {x: (float("inf") if y is None else y) for x, y in start_inds}
-    sink_incoming_edge_capacities = {x: (float("inf") if y is None else y) for x, y in end_inds}
-    print(f"start_inds = {start_inds}")
-    print(f"end_inds = {end_inds}")
+    source_outgoing_edge_capacities = {x: (float("inf") if y is None else y) for x, y in start_inds.items()}
+    sink_incoming_edge_capacities = {x: (float("inf") if y is None else y) for x, y in end_inds.items()}
+    #print(f"start_inds = {start_inds}")
+    #print(f"end_inds = {end_inds}")
 
     if edge_capacities_function_index is None:
         edge_capacities_function_index = lambda graph, v1_idx, v2_idx: graph.getAdjTotalWeightsIndex(v1_idx).get(v2_idx, 0)
@@ -133,29 +134,28 @@ def fordFulkersonIndex(
     capacities = [{} for _ in range(self.n)]
     for v1_idx in range(self.n):
         for v2_idx in self.getAdjIndex(v1_idx).keys():
-            c = edge_capacities_function_index(v1_idx, v2_idx)
+            c = edge_capacities_function_index(self, v1_idx, v2_idx)
             if c: capacities[v1_idx][v2_idx] = c
     if return_poss_distribution:
         # storing the original capacities for use later
         orig_capacities = [dict(x) for x in capacities]
-    source_idx = self.n
-    sink_idx = self.n + 1
-    capacities.append({x: (float("inf") if y is None else y) for x, y in start_inds})
-    capacities.append({})
-    for idx, c in end_inds.items():
-        capacities[idx][sink_idx] = float("inf") if c is None else c
     #print(capacities)
-    def dfs() -> Tuple[Union[int, float, List[int]]]:
-        prev = {source_idx: None}
-        stk = [(source_idx, float("inf"))]
-        while stk:
-            idx, flow = stk.pop()
-            for v2_idx, mx_flow in capacities[idx].items():
-                if v2_idx in prev.keys(): continue
-                flow2 = min(flow, mx_flow)
-                prev[v2_idx] = idx
-                if v2_idx == sink_idx: break
-                stk.append((v2_idx, flow2))
+    def findAugmentingPath() -> Tuple[Union[int, float, List[int]]]:
+        for v0_idx in source_outgoing_edge_capacities.keys():
+            prev = {v0_idx: None}
+            stk = [(v0_idx, source_outgoing_edge_capacities[v0_idx])]
+            while stk:
+                idx, flow = stk.pop()
+                for v2_idx, mx_flow in capacities[idx].items():
+                    if v2_idx in prev.keys(): continue
+                    flow2 = min(flow, mx_flow)
+                    prev[v2_idx] = idx
+                    if v2_idx in sink_incoming_edge_capacities.keys():
+                        flow2 = min(flow2, sink_incoming_edge_capacities[v2_idx])
+                        break
+                    stk.append((v2_idx, flow2))
+                else: continue
+                break
             else: continue
             break
         else: return ()
@@ -168,7 +168,7 @@ def fordFulkersonIndex(
     
     tot_flow = 0
     while True:
-        pair = dfs()
+        pair = findAugmentingPath()
         if not pair: break
         flow, path = pair
         tot_flow += flow
@@ -268,10 +268,12 @@ def fordFulkerson(
     #print(self.n_state_runs_grid_starts)
     #print(start, end, self.vertex2Index(start), self.vertex2Index(end))
     edge_capacities_function_index = None if edge_capacities_function is None else lambda graph, v1_idx, v2_idx: edge_capacities_function(graph.index2Vertex(v1_idx), graph.index2Vertex(v2_idx))
+    #print(f"starts = {starts}")
+    #print(f"ends = {ends}")
     tot_flow, flow_graph = self.fordFulkersonIndex(
-        {self.vertex2Index(x): c for x, c in starts},
-        {self.vertex2Index(x): c for x, c in ends},
-        edge_capacities_function = edge_capacities_function_index,
+        {self.vertex2Index(x): c for x, c in starts.items()},
+        {self.vertex2Index(x): c for x, c in ends.items()},
+        edge_capacities_function_index=edge_capacities_function_index,
         eps=eps,
         return_poss_distribution=return_poss_distribution,
     )
@@ -396,7 +398,9 @@ def checkFlowValidIndex(
         for idx2, flow in idx2_flow_dict.items():
             #if flow <= -eps or flow >= idx2_capacity_dict.get(idx2, 0) + eps:
             #    return False
-            if flow <= -eps or flow >= edge_capacities_function_index(graph, flow_to_graph_inds(idx1), flow_to_graph_inds(idx2)) + eps:
+            if flow < -eps or flow > edge_capacities_function_index(graph, flow_to_graph_inds(idx1), flow_to_graph_inds(idx2)) + eps:
+                #print("the flow through an edge is either negative or exceeds the capacity of the edge")
+                #print(flow, edge_capacities_function_index(graph, flow_to_graph_inds(idx1), flow_to_graph_inds(idx2)))
                 return False
             if flow < eps: continue
             net_vertex_flow_balance[idx1] = net_vertex_flow_balance.get(idx1, 0) - flow
@@ -413,8 +417,12 @@ def checkFlowValidIndex(
                 lb_flow = edge_flow_lower_bound_function_index(graph, v1_idx, v2_idx) - eps
                 if lb_flow <= 0:
                     continue
-                if not v1_in_graph: return False
-                if flow_graph.getAdj(v1_idx).get(v2_idx, 0) < lb_flow: return False
+                if not v1_in_graph:
+                    #print(f"vertex index {v1_idx} is not in the graph")
+                    return False
+                if flow_graph.getAdj(v1_idx).get(v2_idx, 0) < lb_flow:
+                    #print("the lower bound of flow through an edge is not met")
+                    return False
         edge_flow_lower_bound_function_index = lambda graph, v1_idx, v2_idx: 0
 
     # Checking that each source and sink vertex does not
@@ -436,28 +444,34 @@ def checkFlowValidIndex(
         if bal > 0:
             if idx not in end_inds.keys():
                 # Positive flux for a non-sink vertex
+                #print("a non-sink vertex has positive in-flux")
                 return False
             end_inds_total_flow += bal
             if end_inds[idx] is not None:
                 if bal > end_inds[idx]:
                     # Net flow exceeds the capacity of the vertex
+                    #print("the net flow out of a sink vertex exceeds its capacity")
                     return False
                 elif bal < end_inds[idx]:
                     unsaturated_end_inds.add(idx)
             continue
         if idx not in start_inds.keys():
             # Negative flux for a non-source vertex
+            #print("a non-source vertex has negative in-flux")
             return False
         start_inds_total_flow -= bal
         if start_inds[idx] is not None:
             if -bal > start_inds[idx]:
                 # Net flow exceeds the capacity of the vertex
+                #print("the net flow into a source vertex exceeds its capacity")
                 return False
             elif -bal < start_inds[idx]:
                 unsaturated_start_inds.add(idx)
 
-    if start_inds_total_flow != end_inds_total_flow or end_inds_total_flow != tot_flow:
+    if abs(start_inds_total_flow - end_inds_total_flow) > eps or abs(end_inds_total_flow - tot_flow) > eps:
         # Total flow inconsistent with either of the calculated end flows
+        #print("total flow calculated is inconsistent with either the total source inflow or sink outflow")
+        #print(f"calculated total flow = {tot_flow}, source total inflow = {start_inds_total_flow}, sink total outflow = {end_inds_total_flow}")
         return False
 
     #if net_flux:
@@ -489,7 +503,9 @@ def checkFlowValidIndex(
                 if idx2 in seen: continue
                 w2 = w - flow_dict.get(graph_to_flow_inds(idx2), 0)
                 if w2 < eps: continue
-                if idx2 in unsaturated_end_inds: return False
+                if idx2 in unsaturated_end_inds:
+                    #print("the flow is not maximal, as a path containing only unsaturated edges from an unsaturated source vertex to an unsaturated sink has been found")
+                    return False
                 seen.add(idx2)
                 stk.append(idx2)
     if allow_cycles: return True
@@ -502,12 +518,15 @@ def checkFlowValidIndex(
     #        edges.append([idx1, idx2])
     #graph2 = ExplicitUnweightedDirectedGraph(range(graph.n), edges)
     top_sort = flow_graph.kahnIndex()#graph2.kahnIndex()
+    if not top_sort:
+        #print("the flow contains flow cycles, which are not allowed")
+        return False
     #if not top_sort:
     #    print("Found cycle")
     #    print(start_idx, end_idx)
     #    print(flows)
     #print(top_sort)
-    return bool(top_sort)
+    return True
 
 def checkFlowValid(
     graph: LimitedGraphTemplate,
