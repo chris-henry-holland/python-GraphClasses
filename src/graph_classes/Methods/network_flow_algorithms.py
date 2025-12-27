@@ -79,8 +79,18 @@ def fordFulkersonIndex(
                 in start_inds.
                 
         Optional named:
-        edge_capacities_function_index (callable or None):
-
+        edge_capacities_function_index (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two integers (representing the indices of vertex 1
+                and vertex 2 respectively by their indices), with the
+                returned value of the function being a non-negative
+                real number (int or float) representing the maximum direct
+                flow permitted from vertex 1 to vertex 2 for the given
+                graph.
+                If not specified (or given as None) the function using
+                the graph total weight of edges from vertex 1 to vertex
+                2 (or for unweighted graphs the number of edges from
+                vertex 1 to vertex 2) is returned.
             Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
@@ -231,8 +241,18 @@ def fordFulkerson(
                 starts.
         
         Optional named:
-        edge_capacities_function (callable or None):
-
+        edge_capacities_function (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two hashable objects (representing vertex 1 and
+                vertex 2 respectively by their indices), with the
+                returned value of the function being a non-negative
+                real number (int or float) representing the maximum direct
+                flow permitted from vertex 1 to vertex 2 for the given
+                graph.
+                If not specified (or given as None) the function using
+                the graph total weight of edges from vertex 1 to vertex
+                2 (or for unweighted graphs the number of edges from
+                vertex 1 to vertex 2) is returned.
             Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
@@ -335,11 +355,30 @@ def checkFlowValidIndex(
                 in start_inds.
         
         Optional named:
-        edge_capacities_function_index (callable or None):
-
+        edge_capacities_function_index (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two integers (representing the indices of vertex 1
+                and vertex 2 respectively by their indices), with the
+                returned value of the function being a non-negative
+                real number (int or float) representing the maximum direct
+                flow permitted from vertex 1 to vertex 2 for the given
+                graph.
+                If not specified (or given as None) the function using
+                the graph total weight of edges from vertex 1 to vertex
+                2 (or for unweighted graphs the number of edges from
+                vertex 1 to vertex 2) is returned.
             Default: None
-        edge_flow_lower_bound_function_index (callable or None):
-
+        edge_flow_lower_bound_function_index (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two integers (representing the indices of vertex 1
+                and vertex 2 respectively by their indices), with the
+                returned value of the function being a non-negative
+                real number (int or float) representing the minimum flow
+                from vertex 1 to vertex 2 that must be achieved for the
+                flow to be for the given graph.
+                If not specified (or given as None) the function returning
+                zero for every pair of vertices is used (signifying that
+                none of the edges has a lower bound for its flow).
             Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
@@ -534,6 +573,8 @@ def checkFlowValid(
     flow_graph: ExplicitWeightedDirectedGraph,
     starts: Hashable,
     ends: Hashable,
+    edge_capacities_function: Optional[Callable[[LimitedGraphTemplate, Hashable, Hashable], Union[int, float]]]=None,
+    edge_flow_lower_bound_function: Optional[Callable[[LimitedGraphTemplate, Hashable, Hashable], Union[int, float]]]=None,
     eps: float=10 ** -5,
     req_max_flow: bool=True,
     allow_cycles: bool=False,
@@ -576,6 +617,30 @@ def checkFlowValid(
                 starts.
         
         Optional named:
+        edge_capacities_function (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two hashable objects (representing vertex 1 and
+                vertex 2 respectively by their indices), with the
+                returned value of the function being a non-negative
+                real number (int or float) representing the maximum direct
+                flow permitted from vertex 1 to vertex 2 for the given
+                graph.
+                If not specified (or given as None) the function using
+                the graph total weight of edges from vertex 1 to vertex
+                2 (or for unweighted graphs the number of edges from
+                vertex 1 to vertex 2) is returned.
+            Default: None
+        edge_flow_lower_bound_function (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two hashable objects (representing vertex 1 and vertex
+                2 respectively), with the returned value of the function
+                being a non-negative real number (int or float) representing
+                the minimum flow from vertex 1 to vertex 2 that must be
+                achieved for the flow to be for the given graph.
+                If not specified (or given as None) the function returning
+                zero for every pair of vertices is used (signifying that
+                none of the edges has a lower bound for its flow).
+            Default: None
         eps (float): Small number representing the tolerance for
                 float equality (i.e. two numbers that differ by
                 less than this number are considered to be equal).
@@ -614,12 +679,16 @@ def checkFlowValid(
     #        flows_idx[idx1][idx2] = flow
     start_inds = {graph.vertex2Index(x): c for x, c in starts.items()}
     end_inds = {graph.vertex2Index(x): c for x, c in ends.items()}
+    edge_capacities_function_index = None if edge_capacities_function is None else lambda graph, v1_idx, v2_idx: edge_capacities_function(graph.index2Vertex(v1_idx), graph.index2Vertex(v2_idx))
+    edge_flow_lower_bound_function_index = None if edge_flow_lower_bound_function is None else lambda graph, v1_idx, v2_idx: edge_flow_lower_bound_function(graph.index2Vertex(v1_idx), graph.index2Vertex(v2_idx))
     return checkFlowValidIndex(
         graph,
         tot_flow,
         flow_graph,
         start_inds,
         end_inds,
+        edge_capacities_function_index=edge_capacities_function_index,
+        edge_flow_lower_bound_function_index=edge_flow_lower_bound_function_index,
         eps=eps,
         req_max_flow=req_max_flow,
         allow_cycles=allow_cycles,
