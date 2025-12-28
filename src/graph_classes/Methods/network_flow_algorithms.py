@@ -24,13 +24,10 @@ from graph_classes.explicit_graph_types import (
 )
 
 # TODO:
-#  - update documentation of fordFulkerson and checkFlowValid functions
-#    to include the new variables edge_capacities_function_index,
-#    edge_flow_lower_bound_function_index and vertex_balance_function_index
-#  - Add documentation to the new functions findPossibleNetworkCirculationFlowWithVertexBalancesIndex()
-#    and findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex()
-#  - Add functions findPossibleNetworkCirculationFlowWithVertexBalances() and
-#    findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBound()
+#  - Add documentation to the new functions findPossibleNetworkFlowWithVertexBalancesIndex()
+#    and findPossibleNetworkFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex()
+#  - Add functions findPossibleNetworkFlowWithVertexBalances() and
+#    findPossibleNetworkFlowWithVertexBalancesAndEdgeFlowLowerBound()
 #  - Add unit tests that check circulation flows found by the new functions
 #    and fordFulkerson for flows for multiple sources or sinks, with or without
 #    source/sink flow restrictions (in test/test_network_flow_algorithms.py)
@@ -82,11 +79,13 @@ def fordFulkersonIndex(
         edge_capacities_function_index (callable or None): If specified,
                 a function taking as inputs a graph with finite vertices
                 and two integers (representing the indices of vertex 1
-                and vertex 2 respectively by their indices), with the
+                and vertex 2 respectively in the graph), with the
                 returned value of the function being a non-negative
                 real number (int or float) representing the maximum direct
                 flow permitted from vertex 1 to vertex 2 for the given
-                graph.
+                graph. Note that the result of this function may only
+                be non-zero if there exists an edge in the graph from
+                vertex 1 to vertex 2.
                 If not specified (or given as None) the function using
                 the graph total weight of edges from vertex 1 to vertex
                 2 (or for unweighted graphs the number of edges from
@@ -244,7 +243,7 @@ def fordFulkerson(
         edge_capacities_function (callable or None): If specified,
                 a function taking as inputs a graph with finite vertices
                 and two hashable objects (representing vertex 1 and
-                vertex 2 respectively by their indices), with the
+                vertex 2 respectively in the graph), with the
                 returned value of the function being a non-negative
                 real number (int or float) representing the maximum direct
                 flow permitted from vertex 1 to vertex 2 for the given
@@ -358,11 +357,13 @@ def checkFlowValidIndex(
         edge_capacities_function_index (callable or None): If specified,
                 a function taking as inputs a graph with finite vertices
                 and two integers (representing the indices of vertex 1
-                and vertex 2 respectively by their indices), with the
+                and vertex 2 respectively in the graph), with the
                 returned value of the function being a non-negative
                 real number (int or float) representing the maximum direct
                 flow permitted from vertex 1 to vertex 2 for the given
-                graph.
+                graph. Note that the result of this function may only
+                be non-zero if there exists an edge in the graph from
+                vertex 1 to vertex 2.
                 If not specified (or given as None) the function using
                 the graph total weight of edges from vertex 1 to vertex
                 2 (or for unweighted graphs the number of edges from
@@ -371,11 +372,13 @@ def checkFlowValidIndex(
         edge_flow_lower_bound_function_index (callable or None): If specified,
                 a function taking as inputs a graph with finite vertices
                 and two integers (representing the indices of vertex 1
-                and vertex 2 respectively by their indices), with the
+                and vertex 2 respectively in the graph), with the
                 returned value of the function being a non-negative
                 real number (int or float) representing the minimum flow
                 from vertex 1 to vertex 2 that must be achieved for the
-                flow to be for the given graph.
+                flow to be for the given graph. Note that the result of this
+                function may only be non-zero if there exists an edge in
+                the graph from vertex 1 to vertex 2.
                 If not specified (or given as None) the function returning
                 zero for every pair of vertices is used (signifying that
                 none of the edges has a lower bound for its flow).
@@ -620,7 +623,7 @@ def checkFlowValid(
         edge_capacities_function (callable or None): If specified,
                 a function taking as inputs a graph with finite vertices
                 and two hashable objects (representing vertex 1 and
-                vertex 2 respectively by their indices), with the
+                vertex 2 respectively in the graph), with the
                 returned value of the function being a non-negative
                 real number (int or float) representing the maximum direct
                 flow permitted from vertex 1 to vertex 2 for the given
@@ -633,10 +636,10 @@ def checkFlowValid(
         edge_flow_lower_bound_function (callable or None): If specified,
                 a function taking as inputs a graph with finite vertices
                 and two hashable objects (representing vertex 1 and vertex
-                2 respectively), with the returned value of the function
-                being a non-negative real number (int or float) representing
-                the minimum flow from vertex 1 to vertex 2 that must be
-                achieved for the flow to be for the given graph.
+                2 respectively in the graph), with the returned value of
+                the function being a non-negative real number (int or float)
+                representing the minimum flow from vertex 1 to vertex 2 that
+                must be achieved for the flow to be for the given graph.
                 If not specified (or given as None) the function returning
                 zero for every pair of vertices is used (signifying that
                 none of the edges has a lower bound for its flow).
@@ -695,14 +698,81 @@ def checkFlowValid(
         indices_match=indices_match
     )
 
-def findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
+def findPossibleNetworkFlowWithVertexBalancesIndex(
     self,
     vertex_balance_function_index: Callable[[LimitedGraphTemplate, int], Union[int, float]],
     edge_capacities_function_index: Optional[Callable[[LimitedGraphTemplate, int, int], Union[int, float]]]=None,
     eps: float=10 ** -5,
 ) -> Optional[ExplicitWeightedDirectedGraph]:
     """
+    Method finding a possible flow through a network for which
+    any ordered pair of vertices has a flow capacity specified by
+    the function edge_capacities_function_index() and whose
+    vertices have flow balances specified by
+    edge_capacities_function_index(), if any such flow exists.
 
+    The flow capacity of an ordered pair of vertices in the network
+    is the maximum amount of direct flow (i.e. flow that does not
+    pass through any other vertices) from the first of the pair to
+    the second that is allowed.
+
+    The flow balance of a vertex in the network is the total amount
+    of flow from other vertices into this vertex minus the total
+    amount of flow from this vertex to another vertex.
+
+    This function adapts this problem into a maximum network flow
+    problem for a network with sources and sinks with maximum
+    capacities corresponding to the vertex balances, which is then
+    solved by the function fordFulkersonIndex(). This result is
+    a solution to the original problem if and only if the sources
+    and sinks are fully saturated (i.e. the flow from the sources
+    and into the sinks is equal to its capacity), otherwise no
+    flow solving the original problem exists.
+    
+    Args:
+        Required positional:
+        vertex_balance_function_index (callable or None): A function
+                taking as inputs a graph with finite vertices
+                and an integer (representing the index of a vertex
+                in the graph), with the returned value of the function
+                being a real number (int or float) representing the
+                flow balance requirement of that vertex (i.e. the total
+                direct flow from other vertices into this vertex minus
+                the total direct flow from this vertex to any other
+                vertex that must be achieved by the returned flow).
+                
+        Optional named:
+        edge_capacities_function_index (callable or None): If specified,
+                a function taking as inputs a graph with finite vertices
+                and two integers (representing the indices of vertex 1
+                and vertex 2 respectively in the graph), with the
+                returned value of the function being a non-negative
+                real number (int or float) representing the maximum direct
+                flow permitted from vertex 1 to vertex 2 for the given
+                graph. Note that the result of this function may only
+                be non-zero if there exists an edge in the graph from
+                vertex 1 to vertex 2.
+                If not specified (or given as None) the function using
+                the graph total weight of edges from vertex 1 to vertex
+                2 (or for unweighted graphs the number of edges from
+                vertex 1 to vertex 2) is returned.
+            Default: None
+        eps (float): Small number representing the tolerance for
+                float equality (i.e. two numbers that differ by
+                less than this number are considered to be equal).
+            Default: 10 ** -5
+    
+    Returns:
+    If such a flow exists, an ExplicitWeightedDirectedGraph object
+    representing a possible flow distribution through the network
+    satisfying the flow requirements, where the vertices are the same
+    as for the graph and with each vertex having the same index as in
+    the graph, and the directed edge between a pair of vertices
+    represents that there is direct flow from the first vertex of the
+    pair to the second (i.e. flow straight from the first vertex to
+    the second with no intervening vertices), with the weight of the
+    edge representing the size of this direct flow.
+    If no such flow exists, returns None.
     """
 
     # Positive balance means the vertex is a sink, negative
@@ -733,7 +803,7 @@ def findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
         return None
     return res
 
-def findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex(
+def findPossibleNetworkFlowWithVertexBalancesAndEdgeFlowLowerBoundIndex(
     self,
     vertex_balance_function_index: Callable[[LimitedGraphTemplate, int], Union[int, float]]=None,
     edge_flow_lower_bound_function_index: Callable[[LimitedDirectedGraphTemplate, int, int], Union[int, float]]=None,
@@ -746,7 +816,7 @@ def findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundInd
     # edge_lower_bound_function cannot return negative values
 
     if edge_flow_lower_bound_function_index is None:
-        return self.findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
+        return self.findPossibleNetworkFlowWithVertexBalancesIndex(
             vertex_balance_function_index,
             edge_capacities_function_index=edge_capacities_function_index,
             eps=eps,
@@ -773,7 +843,7 @@ def findPossibleNetworkCirculationFlowWithVertexBalancesAndEdgeFlowLowerBoundInd
     
     edge_capacities_function_index2 = lambda graph, v1_idx, v2_idx: edge_capacities_function_index(graph, v1_idx, v2_idx) - edge_flow_lower_bound_function_index(graph, v1_idx, v2_idx)
 
-    flow_graph0 = self.findPossibleNetworkCirculationFlowWithVertexBalancesIndex(
+    flow_graph0 = self.findPossibleNetworkFlowWithVertexBalancesIndex(
         vertex_balance_function_index2,
         edge_capacities_function_index=edge_capacities_function_index2,
         eps=eps,
